@@ -5,7 +5,8 @@ import Map from './map.js';
 
 let headers = {
   headers: {
-    "Authorization": 
+    "Authorization": "Token 
+  //   "Content-Type": "application/json"
   }
 }
 
@@ -49,24 +50,33 @@ function App() {
     })
   })
   const addRoom = (room) => {
-    axios.post('https://cs25-2ndbuild.herokuapp.com/rooms', {
-        room_id: room.room_id,
-        
-        })
+    let builtRoom = {
+       room_id: room.room_id,
+        title: room.title,
+        description: room.description,
+        coordinates: room.coordinates,
+        elevation: room.elevation,
+        terrain: room.terrain,
+        n_exit: exits.includes("n") ? true : false,
+        s_exit: exits.includes("s") ? true : false,
+        e_exit: exits.includes("e") ? true : false,
+        w_exit: exits.includes("w") ? true : false
+    }
+    console.log(builtRoom)
+    axios.post('https://cs25-2ndbuild.herokuapp.com/rooms', builtRoom)
         .then(result => {
           console.log(result.data)
+          setRooms([...rooms, room.room_id])
         })
         .catch(err => {
           console.log(err)
         })
   }
   const move = (direction) => {
-    axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { "direction": direction }, headers)
+    if (cooldown === 0 && exits.includes(direction)){
+      axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/move/', { "direction": direction }, headers)
     .then(result => {
-      console.log(result.data)
-      if (!rooms.includes(result.data.room_id)){
-        addRoom(result.data)
-      }
+      console.log(result.data.coordinates)
       setRoomNum([result.data.room_id])
       setTitle(result.data.title)
       setDescription(result.data.description)
@@ -76,11 +86,19 @@ function App() {
       setMessages(result.data.messages)
       setErrors(result.data.setErrors)
       setExits(result.data.exits)
+      setTimeout(() => {
+         if (rooms.includes(result.data.room_id) === false){
+        addRoom(result.data)
+      }
+      }, 1000)
+     
     })
     .catch(err => {
       console.log(err)
     })
   }
+    }
+    
 
   const info = () => {
     axios.get('https://lambda-treasure-hunt.herokuapp.com/api/adv/init/', headers )
@@ -102,9 +120,18 @@ function App() {
   }
 
   const pickUp = (treasure) => {
-    axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/take/', {"name": treasure}, headers)
+    axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/take/', { "name":"treasure" }, headers)
     .then(result => {
       setItemsCarrying([...itemsCarrying, treasure])
+    })
+    .catch(err => {
+      console.log(err)
+    })
+  }
+  const pray = () => {
+    axios.post('https://lambda-treasure-hunt.herokuapp.com/api/adv/pray/', headers)
+    .then(result => {
+      console.log(result)
     })
     .catch(err => {
       console.log(err)
@@ -139,7 +166,8 @@ function App() {
         return <button style={{color: "red"}} onClick={() => pickUp(item)}>Pick up {item}</button>
       })}
       <p>CoolDown: { cooldown }</p>
-      
+      <p>Messages: {messages} </p>
+      {/* <p>Pray: <button onClick={pray}>Pray Now</button></p> */}
       { showMap && <Map />}
     </div>
   );
